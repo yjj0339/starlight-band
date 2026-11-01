@@ -1,0 +1,16 @@
+{
+  "name": "星光乐队 · Starlight Band Studio",
+  "short_name": "星光乐队",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f2f3f7",
+  "theme_color": "#f2f3f7",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>星光乐队 · Starlight Band Studio</title>
+  <meta name="theme-color" content="#f2f3f7" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="星光乐队" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
+  <header class="topbar glass">
+    <div class="brand">
+      <div class="logo">✦</div>
+      <div><b>星光乐队</b><small>Starlight Band Studio</small></div>
+    </div>
+    <nav class="tabs" id="tabs">
+      <button data-page="stage">演奏</button>
+      <button data-page="choir">合唱团</button>
+      <button data-page="concert">音乐会</button>
+      <button data-page="live">演唱会</button>
+      <button data-page="library" class="on">曲库</button>
+      <button data-page="jam">自由演奏</button>
+    </nav>
+    <div class="top-actions">
+      <span class="pill" id="samplePill" title="真实乐器采样加载状态">🎻 音色</span>
+      <span class="pill hidden" id="midiPill" title="已连接 MIDI 键盘">MIDI</span>
+      <button class="icon-btn" id="btnImportTop" title="导入歌曲">⬆</button>
+      <button class="icon-btn" id="btnSettings" title="设置">⚙</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- 曲库 -->
+    <section class="page on" id="page-library">
+      <div class="hero">
+        <div class="hero-card glass">
+          <div class="hero-text">
+            <h1>今晚的舞台，<span class="grad">属于你</span></h1>
+            <p>完整乐队为你伴奏：钢琴、吉他、贝斯、鼓组、弦乐团、管乐、古筝、二胡、合唱……挑一首歌，选一个声部，直接上台。</p>
+            <div class="hero-btns">
+              <button class="btn primary" id="btnHeroPlay">随机来一首</button>
+              <button class="btn" id="btnHeroJam">自由演奏 + 乐队伴奏</button>
+            </div>
+          </div>
+          <div class="drop glass" id="dropZone">
+            <div class="drop-icon">⬆</div>
+            <b>拖入歌曲，立刻上台</b>
+            <small>MIDI · MP3 · WAV · M4A · 简谱 TXT</small>
+            <div class="drop-btns">
+              <button class="btn small" id="btnPickFile">选择文件</button>
+              <button class="btn small ghost" id="btnJianpu">手写简谱</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="lib-bar">
+        <div class="chips" id="catChips"></div>
+        <div class="search glass"><span>🔍</span><input id="search" placeholder="搜索歌曲 / 作曲家" /></div>
+      </div>
+      <div class="grid" id="songGrid"></div>
+      <footer class="foot">所有内置曲目均为公有领域作品或本应用原创，由内置编曲引擎自动配器为完整乐队。</footer>
+    </section>
+
+    <!-- 音乐会 -->
+    <section class="page" id="page-concert">
+      <div class="hero">
+        <div class="hero-card glass concert-hero">
+          <div class="hero-text">
+            <h1 id="concertTitle">一场属于你的<span class="grad">音乐会</span></h1>
+            <p id="concertDesc">选一份节目单：幕布缓缓拉开，指挥举起指挥棒，合唱团站上台阶，乐队依次演出每一首曲子。</p>
+            <div class="hero-btns">
+              <button class="chip on" id="btnConcertChoir">合唱团：开</button>
+              <button class="btn" id="btnConcertCustom">自选节目单</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="grid program-grid" id="programGrid"></div>
+    </section>
+
+    <!-- 舞台 / 演奏 -->
+    <section class="page" id="page-stage">
+      <div class="stage-grid">
+        <div class="stage-box glass">
+          <canvas id="stageCv"></canvas>
+          <div class="hud-left">
+            <div class="hud-title" id="hudTitle">选择一首歌开始演出</div>
+            <div class="hud-sub" id="hudSub"></div>
+            <button class="pill-btn hud-dl" id="btnDlMp3" title="下载完整演奏 MP3">⬇ 下载 MP3</button>
+            <div class="concert-ctl hidden" id="concertCtl">
+              <span id="concertInfo"></span>
+              <button class="pill-btn" id="btnNextSong">⏭ 下一首</button>
+              <button class="pill-btn" id="btnEndConcert">结束演出</button>
+            </div>
+          </div>
+          <div class="hud-right" id="hudScore">
+            <div class="score"><b id="hudPoints">0</b><small>得分</small></div>
+            <div class="score"><b id="hudCombo">0</b><small>连击</small></div>
+            <div class="score"><b id="hudAcc">--</b><small>准确率</small></div>
+          </div>
+          <div class="hud-center" id="hudCenter"></div>
+          <div class="concert-card hidden" id="concertCard"></div>
+          <div class="stage-actions">
+            
+            <button class="pill-btn" id="btnStageSize" title="切换舞台大小">⤢</button>
+          </div>
+          <div class="jam-bar glass hidden" id="jamBar"></div>
+        </div>
+        <div class="hw-box" id="hwBox"><canvas id="hwCv"></canvas></div>
+        <div class="inst-box glass" id="instBox">
+          <div class="inst-head">
+            <div class="inst-pick" id="instPick"></div>
+            <div class="inst-head-right">
+              <button class="chip" id="btnViewKeys" title="用钢琴键盘演奏当前乐器">琴键模式</button>
+            </div>
+          </div>
+          <div class="inst-host" id="instHost"></div>
+        </div>
+        <div class="transport glass" id="transport">
+          <div class="tp-left">
+            <button class="round" id="btnRestart" title="从头开始">⏮</button>
+            <button class="round big" id="btnPlay" title="播放/暂停 (Enter)">▶</button>
+            <span class="time" id="tpTime">0:00 / 0:00</span>
+          </div>
+          <div class="progress" id="progress"><div class="prog-secs" id="progSecs"></div><div class="prog-fill" id="progFill"></div><div class="prog-head" id="progHead"></div></div>
+          <div class="tp-right">
+            <label class="chip slider-chip" title="速度">🐢<input type="range" id="rate" min="0.5" max="1.5" step="0.05" value="1" /><span id="rateVal">100%</span></label>
+            <button class="chip" id="btnMetro" title="节拍器">🕐</button>
+            <button class="chip" id="btnMode" title="演奏设置"><span id="modeLabel">欣赏</span></button>
+            <button class="chip" id="btnMixer" title="混音台">混音</button>
+            <button class="chip rec" id="btnRec" title="录制演出">录音</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="mini-player glass hidden" id="miniPlayer">
+    <button class="round big" id="mpPlay" title="播放 / 暂停">▶</button>
+    <div class="mp-info" id="mpOpen" title="回到舞台">
+      <b id="mpTitle"></b><small id="mpSub"></small>
+      <div class="mp-bar"><i id="mpFill"></i></div>
+    </div>
+    <button class="round" id="mpNext" title="下一首">⏭</button>
+    <button class="round" id="mpStage" title="回到舞台">↗</button>
+  </div>
+
+  <aside class="drawer glass" id="mixer">
+    <div class="drawer-head"><b>混音台</b><button class="icon-btn" id="btnMixerClose">✕</button></div>
+    <div class="drawer-body" id="mixerBody"></div>
+  </aside>
+
+  <div class="modal-wrap" id="modalWrap"><div class="modal glass" id="modal"></div></div>
+  <input type="file" id="fileInput" accept=".mid,.midi,.kar,audio/*,.mp3,.wav,.m4a,.ogg,.flac,.txt" hidden />
+
+  <script src="js/util.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/theory.js"></script>
+  <script src="js/songs.js"></script>
+  <script src="js/midi.js"></script>
+  <script src="js/analyzer.js"></script>
+  <script src="js/player.js"></script>
+  <script src="js/views.js"></script>
+  <script src="js/stage.js"></script>
+  <script src="js/lame.min.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/concert.js"></script>
+</body>
+</html>
