@@ -452,3 +452,18 @@ body { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
   .hud-left .hud-dl { padding: 4px 8px; font-size: 11px; }
   .stage-actions { bottom: 6px; left: 8px; }
 }
+
+/* 全局演出模式 */
+.show-seg { display: inline-flex; padding: 3px; gap: 2px; border-radius: 12px; background: var(--glass-2); border: 1px solid var(--line); }
+.show-seg button { border: 0; background: transparent; padding: 5px 11px; border-radius: 9px; font-size: 12.5px; font-weight: 500; cursor: pointer; color: var(--muted); white-space: nowrap; transition: background .2s, color .2s; }
+.show-seg button:hover { color: var(--text); }
+.show-seg button.on { background: #fff; color: var(--accent); box-shadow: 0 1px 4px rgba(40, 60, 120, .12); }
+.show-wrap { display: flex; align-items: center; gap: 8px; }
+.show-wrap small { color: var(--muted); font-size: 12px; }
+.stage-actions { align-items: center; }
+.mini-player #mpShow { flex-shrink: 0; padding: 5px 10px; font-size: 12px; }
+@media (max-width: 760px) {
+  .show-seg button { padding: 5px 8px; font-size: 12px; }
+  .stage-actions { right: 8px; flex-wrap: wrap; }
+  .stage-actions .show-seg { transform-origin: left center; }
+}

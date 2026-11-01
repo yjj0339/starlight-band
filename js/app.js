@@ -9,7 +9,7 @@
     jam: BS.store.get('jam', { style: 'pop', prog: 0, key: 0, bpm: 100 }),
     setup: { mode: BS.store.get('lastMode', 'play'), diff: BS.store.get('lastDiff', 'normal') },
   });
-  const CATS = ['全部', '流行', '古典', '国风', '节日', '儿歌', '音乐会', '我的导入'];
+  const CATS = ['全部', '流行', '治愈', '古典', '国风', '民谣', '影视', '节日', '儿歌', '音乐会', '我的导入'];
   const SUSTAINABLE = ['piano', 'epiano', 'musicbox', 'marimba', 'harp', 'guzheng', 'aguitar', 'eguitar', 'bass'];
   const PLUCKED = ['harp', 'guzheng', 'aguitar', 'eguitar', 'marimba', 'musicbox', 'timpani'];
 

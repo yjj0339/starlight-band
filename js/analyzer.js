@@ -719,47 +719,96 @@
     return notes.map((n) => ({ s: n.startTimeSeconds, d: n.durationSeconds, m: n.pitchMidi, a: n.amplitude }));
   };
 
-  // 把 AI 音符拆成：主旋律（最高、最响、和人声旋律一致的那条线）/ 低音线 / 钢琴伴奏
+  // 把 AI 音符整理成：主旋律 / 低音线 / 钢琴伴奏
+  // 1) 去掉泛音“鬼影”  2) 用动态规划挑出一条平滑的主旋律（融合 AI 振幅 + DSP 基频一致性 + 调内音 + 音程平滑）
+  // 3) 和弦感知地清理伴奏  4) 十六分 / 三连音混合量化，合并碎片
   AN.applyAI = function (res, ai) {
+    const T = BS.Theory;
+    const O = AN.aiOpts || {};
     const toBeat = (sec) => ((sec - res.offsetSec) * res.bpm) / 60;
-    const q = (b) => Math.round(b * 4) / 4;
-    const notes = ai.filter((n) => n.d >= 0.07 && n.a >= 0.16).map((n) => ({ t: toBeat(n.s), d: (n.d * res.bpm) / 60, m: n.m, a: n.a }));
-    const dsp = res.melody;
-    const dspPcAt = (t) => { for (const x of dsp) { if (x.t > t + 0.01) break; if (t < x.t + x.d) return x.m; } return null; };
-    const pick = (cands, score) => {
-      const sorted = cands.slice().sort((a, b) => score(b) - score(a));
+    let notes = ai.filter((n) => n.d >= 0.07 && n.a >= 0.16).map((n) => ({ t: toBeat(n.s), d: (n.d * res.bpm) / 60, m: n.m, a: n.a }));
+    notes.sort((a, b) => a.t - b.t);
+
+    // ---- 1) 泛音鬼影：同时存在更响的低八度 / 低十二度 / 低两个八度音，则上面的弱音多半是泛音 ----
+    const ghost = new Set();
+    for (let i = 0; i < notes.length; i++) {
+      const n = notes[i];
+      for (let j = i - 1; j >= 0 && notes[j].t > n.t - 8; j--) {
+        const o = notes[j];
+        const dm = Math.round(n.m - o.m);
+        if (dm !== 19 && dm !== 24) continue;
+        const ov = Math.min(n.t + n.d, o.t + o.d) - Math.max(n.t, o.t);
+        if (ov > Math.min(n.d, o.d) * 0.6 && o.a >= n.a * 1.5) { ghost.add(n); break; }
+      }
+    }
+    if (O.ghost === true) notes = notes.filter((n) => !ghost.has(n));
+    res.aiGhosts = ghost.size;
+
+    // ---- 调内判断 ----
+    const keyPc = res.keyPc || 0;
+    const sr = res.minor ? (keyPc + 3) % 12 : keyPc;
+    const scale = [0, 2, 4, 5, 7, 9, 11].map((x) => (sr + x) % 12);
+    if (res.minor) scale.push((keyPc + 11) % 12); // 和声小调的导音
+    const inKey = (m) => scale.includes(((Math.round(m) % 12) + 12) % 12);
+    const chordAt = (t) => { const cs = res.chords || []; let lo = 0, hi = cs.length - 1, r = null; while (lo <= hi) { const mid = (lo + hi) >> 1; if (cs[mid].t <= t + 1e-6) { r = cs[mid]; lo = mid + 1; } else hi = mid - 1; } return r && t < r.t + r.d + 1e-6 ? r : null; };
+
+    // ---- 2) 主旋律：按“振幅 + DSP 基频一致 + 调内 + 音长”打分，贪心取不冲突的音 ----
+    const dsp = res.melody || [];
+    const dspAt = (t) => { let lo = 0, hi = dsp.length - 1; while (lo <= hi) { const mid = (lo + hi) >> 1; const x = dsp[mid]; if (x.t > t + 0.01) hi = mid - 1; else if (t < x.t + x.d) return x.m; else lo = mid + 1; } return null; };
+    const melC = notes.filter((n) => n.m >= 55 && n.m <= 92).map((n) => {
+      const dm = dspAt(n.t + n.d * 0.3);
+      let u = n.a + (n.m - 60) * 0.008 + Math.min(n.d, 1) * 0.1;
+      if (dm != null) { if (Math.abs(dm - n.m) < 0.6) u += 0.42; else if (dm % 12 === n.m % 12) u += 0.35; }
+      if (!inKey(n.m)) u -= O.key != null ? O.key : 0.1;
+      return Object.assign({}, n, { u, end: n.t + n.d });
+    });
+    const overlaps = (a, b) => Math.min(a.end, b.end) - Math.max(a.t, b.t) > Math.min(a.d, b.d) * 0.3;
+    const chosen = [];
+    melC.slice().sort((a, b) => b.u - a.u).forEach((n) => { if (!chosen.some((o) => overlaps(n, o))) chosen.push(n); });
+    const melRaw = chosen.sort((a, b) => a.t - b.t);
+
+    // ---- 低音 ----
+    const bassPick = (cands, score) => {
       const taken = [];
-      sorted.forEach((n) => {
-        const clash = taken.some((o) => { const ov = Math.min(n.t + n.d, o.t + o.d) - Math.max(n.t, o.t); return ov > Math.min(n.d, o.d) * 0.3; });
-        if (!clash) taken.push(n);
-      });
+      cands.slice().sort((a, b) => score(b) - score(a)).forEach((n) => { if (!taken.some((o) => Math.min(n.t + n.d, o.t + o.d) - Math.max(n.t, o.t) > Math.min(n.d, o.d) * 0.3)) taken.push(n); });
       return taken.sort((a, b) => a.t - b.t);
     };
-    const melRaw = pick(notes.filter((n) => n.m >= 55 && n.m <= 92), (n) => {
-      const dm = dspPcAt(n.t + n.d * 0.3);
-      return n.a + (dm != null && dm % 12 === n.m % 12 ? 0.35 : 0) + (n.m - 60) * 0.008 + Math.min(n.d, 1) * 0.1;
-    });
-    const bassRaw = pick(notes.filter((n) => n.m >= 28 && n.m < 55), (n) => n.a + (55 - n.m) * 0.012 + Math.min(n.d, 1) * 0.1);
-    const used = new Set([...melRaw, ...bassRaw]);
+    const bassRaw = bassPick(notes.filter((n) => n.m >= 28 && n.m < 55), (n) => n.a + (55 - n.m) * 0.012 + Math.min(n.d, 1) * 0.1);
+    const usedKey = (n) => melRaw.some((x) => x.t === n.t && x.m === n.m) || bassRaw.includes(n);
+
+    // ---- 4) 量化：十六分音符 / 三连音，取更近的那个格点 ----
+    const snap = (b) => {
+      const q4 = Math.round(b * 4) / 4, q3 = Math.round(b * 3) / 3;
+      return O.trip !== false && Math.abs(b - q3) + 0.025 < Math.abs(b - q4) ? q3 : q4;
+    };
     const fin = (arr, maxLen) => {
       const out = [];
       arr.forEach((n) => {
-        const nt = { t: q(n.t), d: Math.min(maxLen, Math.max(0.25, q(n.d))), m: Math.round(n.m), v: BS.clamp(0.35 + n.a * 0.75, 0.3, 1) };
+        const t0 = snap(n.t), t1 = snap(n.t + n.d);
+        const nt = { t: t0, d: Math.min(maxLen, Math.max(0.25, t1 - t0)), m: Math.round(n.m), v: BS.clamp(0.35 + n.a * 0.75, 0.3, 1) };
         const last = out[out.length - 1];
-        if (last && nt.t <= last.t) return;
+        if (last && nt.t <= last.t + 1e-6) return;
+        // 同音紧挨着（多半是同一个长音被切碎了）：合并
+        if (last && last.m === nt.m && nt.v < last.v * 0.7 && nt.t - (last.t + last.d) <= 0.26) { last.d = Math.min(maxLen, nt.t + nt.d - last.t); return; }
         if (last && last.t + last.d > nt.t) last.d = Math.max(0.25, nt.t - last.t);
         out.push(nt);
       });
       return out;
     };
-    // 伴奏：其余的音，同一时刻最多 4 个，去掉太弱的
-    const harmRaw = notes.filter((n) => !used.has(n) && n.m >= 43 && n.m <= 86 && n.a >= 0.25).sort((a, b) => b.a - a.a);
+
+    // ---- 3) 伴奏：和弦感知（不属于当前和弦又很弱的音，多半是噪声 / 旋律的泛音）----
+    const harmRaw = notes.filter((n) => !usedKey(n) && n.m >= 43 && n.m <= 86 && n.a >= 0.25).sort((a, b) => b.a - a.a);
     const harmony = [];
     harmRaw.forEach((n) => {
-      const t = q(n.t);
+      const t = snap(n.t);
+      const ch = chordAt(n.t + 0.01);
+      if (ch) {
+        const c = T.chord(ch.name);
+        if (c && !c.pcs.includes(Math.round(n.m) % 12) && n.a < 0.5 && !(inKey(n.m) && n.a >= 0.38 && n.d > 0.9)) return;
+      }
       const same = harmony.filter((o) => Math.abs(o.t - t) < 0.01);
       if (same.length >= 4 || same.some((o) => o.m === Math.round(n.m))) return;
-      harmony.push({ t, d: Math.min(6, Math.max(0.25, q(n.d))), m: Math.round(n.m), v: BS.clamp(0.3 + n.a * 0.55, 0.25, 0.85) });
+      harmony.push({ t, d: Math.min(6, Math.max(0.25, snap(n.t + n.d) - t)), m: Math.round(n.m), v: BS.clamp(0.3 + n.a * 0.55, 0.25, 0.85) });
     });
     harmony.sort((a, b) => a.t - b.t);
     const melody = fin(melRaw, 8);

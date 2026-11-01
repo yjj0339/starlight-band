@@ -11,7 +11,10 @@
       programs: [
         { name: '圣诞合唱会', icon: '🎄', tag: '钟声与合唱', ids: ['silent-night', 'choir-hymn', 'jingle-bells', 'xmas-bells', 'merry-xmas', 'auld-lang-syne'] },
         { name: '致远方 · 合唱专场', icon: '🎤', tag: '温暖的和声', ids: ['choir-hymn', 'farewell', 'going-home', 'canon', 'auld-lang-syne'] },
-        { name: '童声合唱团', icon: '🪁', tag: '轻快温暖', ids: ['twinkle', 'kite', 'two-tigers', 'lullaby', 'birthday'] },
+        { name: '童声合唱团', icon: '🪁', tag: '轻快温暖', ids: ['twinkle', 'kite', 'little-dolphin', 'two-tigers', 'good-night-star', 'birthday'] },
+        { name: '星河合唱夜', icon: '🌌', tag: '辽阔深情', ids: ['star-voyage', 'dawn-sea', 'starry-promise', 'star-dust', 'castle-clouds'] },
+        { name: '古风合唱团', icon: '🏮', tag: '清雅悠远', ids: ['moon-alone', 'long-river', 'mid-autumn', 'peach-ferry', 'jiangnan-rain'] },
+        { name: '婚礼合唱会', icon: '💐', tag: '浪漫庄重', ids: ['wedding-day', 'evening-breeze', 'dandelion-wind', 'first-snow', 'road-home'] },
       ],
     },
     concert: {
@@ -21,6 +24,9 @@
         { name: '新年古典音乐会', icon: '🎻', tag: '管弦 + 合唱', ids: ['ode-to-joy', 'canon', 'blue-danube', 'minuet', 'dawn-overture', 'triumph'] },
         { name: '国风之夜', icon: '🏮', tag: '古筝 · 二胡 · 笛', ids: ['jasmine', 'bamboo-rain', 'sakura-rain', 'chang-an', 'farewell'] },
         { name: '电影感管弦之夜', icon: '🎬', tag: '恢弘大气', ids: ['triumph', 'dawn-overture', 'star-river', 'going-home', 'prelude-c', 'blue-danube'] },
+        { name: '治愈钢琴音乐会', icon: '🎹', tag: '安静温柔', ids: ['dandelion-wind', 'first-snow', 'autumn-whisper', 'rainy-piano', 'quiet-lake', 'cat-window'] },
+        { name: '影视史诗之夜', icon: '🌠', tag: '热血澎湃', ids: ['star-voyage', 'hero-road', 'storm-eye', 'final-battle', 'castle-clouds', 'dawn-sea'] },
+        { name: '春节喜庆音乐会', icon: '🧨', tag: '锣鼓喧天', ids: ['new-year-luck', 'lantern-night', 'bianjing-dream', 'firework-night', 'mid-autumn'] },
       ],
     },
     live: {
@@ -28,8 +34,11 @@
       defaultChoir: false,
       programs: [
         { name: '流行演唱会', icon: '🎤', tag: '乐队现场', ids: ['summer-breeze', 'star-city', 'fly-free', 'star-river', 'moon-sea', 'jazz-coffee'] },
-        { name: '摇滚之夜', icon: '🎸', tag: '燃', ids: ['fly-free', 'burn', 'star-city', 'cancan', 'jingle-bells'] },
+        { name: '摇滚之夜', icon: '🎸', tag: '燃', ids: ['fly-free', 'burn', 'youth-far', 'rock-youth', 'lets-go', 'cancan'] },
         { name: '爵士与民谣', icon: '🎷', tag: '松弛', ids: ['jazz-coffee', 'midnight-blue', 'moon-sea', 'farewell', 'summer-breeze'] },
+        { name: '电子舞曲之夜', icon: '🪩', tag: '律动', ids: ['night-flight', 'neon-city', 'heartbeat', 'galaxy-train', 'star-city'] },
+        { name: '民谣篝火夜', icon: '🔥', tag: '温暖', ids: ['road-home', 'wind-sail', 'evening-breeze', 'spring-picnic', 'warm-winter'] },
+        { name: '爵士蓝调俱乐部', icon: '🎺', tag: '摇摆', ids: ['swing-street', 'dancing-cloud', 'coffee-book', 'seaside-dusk', 'midnight-blue'] },
       ],
     },
   };
@@ -145,8 +154,7 @@
     BS.toast(natural ? '演出结束，感谢聆听' : '已结束演出');
     setTimeout(() => {
       if (C.running) return;
-      S.concert = false; S.live = false; S.curtain = 1; S.curtainTarget = 1;
-      $('.stage-grid').classList.remove('big-stage');
+      if (App.applyShowVisual) App.applyShowVisual(App.show || 'normal', App.lastSetup); else { S.concert = false; S.live = false; S.curtain = 1; S.curtainTarget = 1; $('.stage-grid').classList.remove('big-stage'); }
       $('#concertCtl').classList.add('hidden');
       $('#btnDlMp3').classList.remove('hidden');
     }, 4300);

@@ -63,6 +63,7 @@
       </div>
       <div class="lib-bar">
         <div class="chips" id="catChips"></div>
+        <div class="show-wrap"><small>演出模式</small><div class="show-seg"></div></div>
         <div class="search glass"><span>🔍</span><input id="search" placeholder="搜索歌曲 / 作曲家" /></div>
       </div>
       <div class="grid" id="songGrid"></div>
@@ -111,6 +112,7 @@
           <div class="stage-actions">
             
             <button class="pill-btn" id="btnStageSize" title="切换舞台大小">⤢</button>
+            <div class="show-seg" title="演出模式"></div>
           </div>
           <div class="jam-bar glass hidden" id="jamBar"></div>
         </div>
@@ -149,6 +151,7 @@
       <b id="mpTitle"></b><small id="mpSub"></small>
       <div class="mp-bar"><i id="mpFill"></i></div>
     </div>
+    <button class="chip small" id="mpShow" title="切换演出模式：标准 / 合唱团 / 音乐会 / 演唱会">标准</button>
     <button class="round" id="mpNext" title="下一首">⏭</button>
     <button class="round" id="mpStage" title="回到舞台">↗</button>
   </div>
@@ -165,6 +168,7 @@
   <script src="js/audio.js"></script>
   <script src="js/theory.js"></script>
   <script src="js/songs.js"></script>
+  <script src="js/songs-originals.js"></script>
   <script src="js/midi.js"></script>
   <script src="js/analyzer.js"></script>
   <script src="js/player.js"></script>
@@ -173,5 +177,6 @@
   <script src="js/lame.min.js"></script>
   <script src="js/app.js"></script>
   <script src="js/concert.js"></script>
+  <script src="js/show.js"></script>
 </body>
 </html>

@@ -132,6 +132,13 @@
     jazz: { name: '爵士', keys: 'epiano', keysPat: 'comp', bass: 'walk', drums: 'swing', pad: null, counter: 'sax' },
     chinese: { name: '国风', keys: 'guzheng', keysPat: 'gzarp', bass: 'long', bassInst: 'cello', drums: 'chinese', pad: 'strings', padMin: 2, counter: 'flute' },
     xmas: { name: '节日', keys: 'piano', keysPat: 'pop', bass: 'pop', drums: 'xmas', guitar: 'aguitar', guitarPat: 'strum', pad: 'strings', padMin: 2, counter: 'musicbox' },
+    folk: { name: '民谣', keys: 'piano', keysPat: 'arp8', bass: 'pop', drums: 'folk', guitar: 'aguitar', guitarPat: 'strum', guitarMin: 1, pad: 'strings', padMin: 3, counter: 'flute' },
+    epic: { name: '史诗', keys: 'piano', keysPat: 'arp8', bass: 'long', bassInst: 'cello', drums: 'epic', pad: 'strings', padMin: 1, counter: 'horn', timp: true },
+    dance: { name: '电子舞曲', keys: 'epiano', keysPat: 'pop', bass: 'rock8', drums: 'dance', pad: 'synthpad', padMin: 2, counter: 'synthlead' },
+    bossa: { name: '波萨诺瓦', keys: 'epiano', keysPat: 'comp', bass: 'pop', drums: 'bossa', guitar: 'nylon', guitarPat: 'pick', guitarMin: 1, pad: null, counter: 'flute' },
+    ragtime: { name: '拉格泰姆', keys: 'piano', keysPat: 'march', bass: 'march', drums: null, pad: null, counter: 'clarinet' },
+    lofi: { name: '慵懒', keys: 'epiano', keysPat: 'comp', bass: 'pop', drums: 'ballad', pad: 'synthpad', padMin: 3, counter: 'musicbox' },
+    lullaby: { name: '摇篮', keys: 'musicbox', keysPat: 'arp8', bass: 'long', bassInst: 'cello', drums: null, pad: 'strings', padMin: 2, counter: 'flute' },
   });
 
   const ROLE_INFO = {
@@ -306,6 +313,31 @@
         if (L >= 3) for (let p = 0; p < bpb; p += 0.5) in_(p) && H(p, 54, 0.3);
       }
     }
+    if (bpb === 3) {
+      /* 3/4 拍使用上面的圆舞曲鼓点 */
+    } else if (kind === 'folk') {
+      H(0, 36, 0.7); in_(2) && H(2, 36, 0.6);
+      [1, 3].forEach((p) => in_(p) && H(p, 37, 0.5));
+      if (L >= 2) for (let p = 0.5; p < bpb; p += 1) in_(p) && H(p, 54, 0.32);
+    } else if (kind === 'epic') {
+      if (L <= 1) { H(0, 43, 0.6); in_(2) && H(2, 43, 0.45); }
+      else if (L === 2) { H(0, 36, 0.85); in_(2) && H(2, 36, 0.8); [1, 3].forEach((p) => in_(p) && H(p, 43, 0.75)); in_(1.5) && H(1.5, 47, 0.5); }
+      else {
+        H(0, 36, 0.95);
+        for (let p = 0; p < bpb; p += 0.5) in_(p) && H(p, p % 1 ? 47 : 43, p % 1 ? 0.55 : 0.8);
+        in_(2) && H(2, 38, 0.8);
+      }
+    } else if (kind === 'dance') {
+      const four = L >= 2;
+      for (let p = 0; p < bpb; p += 1) if (four || p % 2 === 0) in_(p) && H(p, 36, 0.95);
+      if (L >= 2) for (let p = 0.5; p < bpb; p += 1) in_(p) && H(p, L >= 3 ? 46 : 42, 0.42);
+      if (L >= 3) { [1, 3].forEach((p) => in_(p) && H(p, 39, 0.8)); for (let p = 0.25; p < bpb; p += 0.5) in_(p) && H(p, 42, 0.25); }
+    } else if (kind === 'bossa') {
+      for (let p = 0; p < bpb; p += 0.5) in_(p) && H(p, 42, p % 1 ? 0.2 : 0.3);
+      H(0, 36, 0.55); in_(1.5) && H(1.5, 36, 0.45); in_(2) && H(2, 36, 0.5); in_(3.5) && H(3.5, 36, 0.4);
+      const odd = Math.floor(t / bpb) % 2 === 0;
+      (odd ? [0, 1.5, 3] : [1, 2]).forEach((p) => in_(p) && H(p, 37, 0.5));
+    }
     if (fill) {
       const f = bpb - 1;
       [[0, 38, 0.7], [0.25, 50, 0.7], [0.5, 47, 0.75], [0.75, 43, 0.85]].forEach(([p, n, v]) => H(f + p, n, v));
@@ -429,7 +461,8 @@
       sections.push({ name, t, end: t + len, level });
       shifted.forEach((e) => chords.push(e));
     };
-    const form = song.form.map((f) => ({ key: f[0], level: parseInt(f.slice(1)) || 2 }));
+    // 形如 'C3+2'：该段整体升高 2 个半音（最后一遍副歌转调）
+    const form = song.form.map((f) => { const m = String(f).match(/^(.)(\d)?([+-]\d+)?$/); return { key: m ? m[1] : f[0], level: m && m[2] ? parseInt(m[2]) : 2, shift: m && m[3] ? parseInt(m[3]) : 0 }; });
     // 前奏
     if (song.intro !== false) {
       let ev;
@@ -451,20 +484,22 @@
     form.forEach((f, i) => {
       const p = parts[f.key];
       if (!p) return;
-      addBlock(p.ch.events, f.level, p.len, p.name || f.key + ' 段', { crash: i > 0 || song.intro !== false });
+      const sh0 = f.shift || 0;
+      const evs = sh0 ? p.ch.events.map((e) => { const nm = T.transposeChord(e.name, sh0); return { t: e.t, d: e.d, name: nm, ch: T.chord(nm) || e.ch }; }) : p.ch.events;
+      addBlock(evs, f.level, p.len, (p.name || f.key + ' 段') + (sh0 ? ' · 转调' : ''), { crash: i > 0 || song.intro !== false });
       const mv = 0.62 + f.level * 0.06;
-      p.mel.notes.forEach((n) => lead.notes.push({ t: t + n.t - p.pk, d: n.d, m: n.m, v: hum(mv) }));
+      p.mel.notes.forEach((n) => lead.notes.push({ t: t + n.t - p.pk, d: n.d, m: n.m + sh0, v: hum(mv) }));
       if (f.level >= 3 && counterInst && counterInst !== lead.inst) {
         if (!tracks.counter) tracks.counter = { id: 'counter', role: 'counter', name: ROLE_INFO.counter.name, inst: counterInst, notes: [], vol: 0.5, pan: -0.3, send: 0.3 };
         const avg = p.mel.notes.reduce((a, n) => a + n.m, 0) / Math.max(1, p.mel.notes.length);
         const sh = avg < 66 ? 12 : -12;
-        p.mel.notes.forEach((n) => tracks.counter.notes.push({ t: t + n.t - p.pk, d: n.d, m: n.m + sh, v: hum(0.55) }));
+        p.mel.notes.forEach((n) => tracks.counter.notes.push({ t: t + n.t - p.pk, d: n.d, m: n.m + sh + sh0, v: hum(0.55) }));
       }
       t += p.len;
     });
     // 尾声：最后一个和弦延长
     let lastCh = chords[chords.length - 1];
-    if (song.endChord) lastCh = { name: song.endChord, ch: T.chord(song.endChord) };
+    if (song.endChord) { const en = T.transposeChord(song.endChord, form[form.length - 1].shift || 0); lastCh = { name: en, ch: T.chord(en) }; }
     if (lastCh && song.ending !== false) {
       blocks.push({ t, len: bpb, events: [{ t, d: bpb, name: lastCh.name, ch: lastCh.ch }], level: Math.max(2, form[form.length - 1].level), crash: true, fillEnd: false, ending: true });
       sections.push({ name: '尾声', t, end: t + bpb, level: 3 });
